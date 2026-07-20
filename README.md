@@ -70,7 +70,10 @@ Local installs may require **trusting the project folder** before MCP starts. If
 
 Always use `--trust` on install so the plugin’s MCP can run.
 
-Do **not** add this repository as a Grok marketplace source for install. `source: "."` is invalid for marketplace index entries, and this repo is not a multi-plugin catalog. Prefer direct `grok plugin install superfly/sprites-grok-plugin --trust` (or a local path while developing).
+The canonical marketplace listing is maintained in
+[`xai-org/plugin-marketplace`](https://github.com/xai-org/plugin-marketplace).
+This repository intentionally contains only the plugin itself. Direct GitHub
+installation remains available for development and testing.
 
 ## Authentication (one screen)
 
