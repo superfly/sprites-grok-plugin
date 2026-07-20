@@ -1,0 +1,22 @@
+{
+  "name": "sprites",
+  "version": "0.2.0",
+  "description": "Sprites sandboxes for Grok Build via hosted MCP (OAuth). Create isolated compute, run commands and tests, manage services and checkpoints. First prompt: List my sprites. Slash: /sprites-status, /sprites-smoke.",
+  "author": {
+    "name": "Fly.io",
+    "email": "support@fly.io"
+  },
+  "homepage": "https://sprites.dev",
+  "repository": "https://github.com/superfly/sprites-grok-plugin",
+  "license": "MIT",
+  "mcpServers": "./.grok-plugin/mcp.json",
+  "keywords": [
+    "sprites",
+    "sandbox",
+    "compute",
+    "development-environments",
+    "mcp",
+    "agent-skills",
+    "fly"
+  ]
+}
