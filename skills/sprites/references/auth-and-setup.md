@@ -16,7 +16,7 @@ Grok authenticates that server with **browser OAuth**. The Sprites CLI is not re
    grok plugin enable sprites
    ```
 2. Reload plugins (`/plugins` → `r`) or restart Grok.
-3. In Grok, say: **List my sprites.**  
+3. In Grok, say: **List my sprites.**
    Or run **`/sprites-status`** for a guided check.
 4. Complete the browser OAuth prompt:
    - Fly.io account with Sprites access
