@@ -3,6 +3,10 @@
     "sprites": {
       "type": "http",
       "url": "https://sprites.dev/mcp",
+      "headers": {
+        "Fly-Client-Interactive": "false",
+        "Fly-Client-Agent": "grok"
+      },
       "tool_timeout_sec": 300
     }
   }

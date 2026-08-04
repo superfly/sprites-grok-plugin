@@ -4,6 +4,11 @@ Use [**Sprites**](https://sprites.dev) from [Grok Build](https://x.ai/cli): isol
 
 This repo **is** the plugin. It wires Grok to the hosted MCP server at `https://sprites.dev/mcp` (OAuth) and ships skills for safe workflows. **No Sprites CLI required.**
 
+The plugin marks its hosted MCP requests as Grok-driven using coarse,
+privacy-safe [`client-signals`](https://github.com/superfly/client-signals)
+headers. The marker is advisory analytics only and is never used for access
+control, gating, or rate-limiting.
+
 ## Quick start
 
 ```bash
