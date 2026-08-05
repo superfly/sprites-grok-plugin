@@ -31,8 +31,35 @@ class GrokPluginRepositoryTests(unittest.TestCase):
             "https://github.com/superfly/sprites-grok-plugin",
         )
 
-    def test_root_and_packaged_mcp_configs_match(self) -> None:
-        self.assertEqual(self.root_mcp, self.packaged_mcp)
+    def test_root_and_packaged_mcp_configs_agree_on_connection(self) -> None:
+        """The two configs must stay in sync on how to reach the server.
+
+        They deliberately differ on attribution headers only — see the
+        attribution tests below.
+        """
+        root = dict(self.root_mcp["mcpServers"]["sprites"])
+        packaged = dict(self.packaged_mcp["mcpServers"]["sprites"])
+        packaged.pop("headers", None)
+        self.assertEqual(root, packaged)
+
+    def test_root_config_sends_no_attribution(self) -> None:
+        """The root .mcp.json is the generic project-scoped config that Grok,
+        Claude Code, and Cursor all read. Attribution headers here would label
+        any client used in a checkout of this repo as Grok.
+        """
+        self.assertNotIn("headers", self.root_mcp["mcpServers"]["sprites"])
+
+    def test_packaged_config_sends_attribution(self) -> None:
+        """Fly-Client-Interactive is the instrumentation sentinel: without a
+        parseable boolean, client-signals discards Fly-Client-Agent too and the
+        request classifies as uninstrumented. "grok" is the canonical tag from
+        client-signals spec/markers.json; any other spelling normalizes to
+        "other". See the Client attribution section in the README.
+        """
+        self.assertEqual(
+            self.packaged_mcp["mcpServers"]["sprites"]["headers"],
+            {"Fly-Client-Interactive": "false", "Fly-Client-Agent": "grok"},
+        )
 
     def test_mcp_server_uses_https(self) -> None:
         server = self.packaged_mcp["mcpServers"]["sprites"]
