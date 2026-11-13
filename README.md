@@ -233,7 +233,7 @@ server-side: `operator="agent", agent="grok"` means the headers landed;
 ## Repository layout
 
 ```
-.grok-plugin/plugin.json       Manifest (v0.2.0)
+.grok-plugin/plugin.json       Manifest (v0.3.0)
 .grok-plugin/mcp.json          Fly MCP URL + client attribution (shipped)
 .mcp.json                      Project-scoped config for working in this repo;
                                no attribution headers — see Client attribution
