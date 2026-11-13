@@ -31,4 +31,5 @@ Before restoring, explain that restore rewinds filesystem state and discards wor
 - Prefer environment variables injected into `exec` / services over writing secrets into the repo tree.
 - Do not create debug endpoints that dump env, tokens, or arbitrary files.
 - Treat sprite URLs as potentially public; authenticate or restrict by default when the product supports it.
-- Restricted OAuth tokens (non-empty name prefix + create caps) are safer for agent connectors — stay within the prefix unless the user intentionally chooses **Full access** (no prefix, unrestricted access to all sprites in the org).
+- Restricted grants (a name prefix plus a Sprite limit) are safer for agent connectors — stay within the prefix unless the user intentionally authorizes without one (unrestricted access to all sprites in the org).
+- The Fly MCP may also expose Fly app, Machine or Managed Postgres tools if the user granted them. Do not use them for Sprites work; they act on production resources outside this plugin's scope.

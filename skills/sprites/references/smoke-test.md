@@ -14,7 +14,7 @@ Use after OAuth works (or when the user runs `/sprites-smoke` / asks to verify S
    - Note any shared name prefix on existing sprites (hint only).
 
 2. **`create_sprite`** with a short-lived name:
-   - Prefer `mcp-smoke-<shortid>` when the session has no known prefix (product default is `mcp-`).
+   - Prefer `mcp-smoke-<shortid>` when the session has no known prefix (the common prefix is `mcp-`).
    - If create fails with “must start with `X`”, retry once as `Xsmoke-<shortid>` (or `X` + slug).
    - If the user already has a known prefix from this session, use it.
    - Report actual name, status, URL. **Cold is OK.**
@@ -36,7 +36,7 @@ Sprites smoke test
 - create: <name> — <status> — <url>
 - exec: exit <code> — <brief output>
 - destroy: skipped (kept) | destroyed | not requested
-- prefix learned: mcp- | <other> | full-access (none)
+- prefix learned: mcp- | <other> | none (unrestricted)
 ```
 
 ## Failures

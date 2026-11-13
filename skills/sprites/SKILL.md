@@ -18,7 +18,7 @@ description: >
 
 Sprites are hardware-isolated, persistent Linux environments with their own filesystem, public URL surface, background services, checkpoints, and outbound network policy. This skill runs in **Grok Build on the local machine**, outside the sprite.
 
-**Control plane:** the **Sprites MCP tools** from this plugin (`https://sprites.dev/mcp`). That is the only supported path for agent-driven Sprites work.
+**Control plane:** the **Sprites MCP tools** from this plugin, served by the Fly MCP (`https://mcp.fly.io`) under the server name `sprites`. That is the only supported path for agent-driven Sprites work.
 
 ## When to use Sprites (compute routing)
 
@@ -50,7 +50,8 @@ Stay local when the task is purely about editing the current workspace, reading 
 2. **Empty `list_sprites` is success** (org has no sprites yet, or none visible under the token policy). Offer to create one if useful.
 3. If tools are missing or auth fails, **stop and diagnose** via [auth-and-setup.md](references/auth-and-setup.md). Do not continue with CLI/API workarounds.
 4. OAuth: wait for the user to finish the browser flow, then retry **once**.
-5. **Name prefixes** are set on the OAuth consent screen for **restricted** tokens (product **default is `mcp-`**; user may choose another non-empty prefix). **Full access (no prefix)** is a separate choice: bare names allowed, but **unrestricted access to all sprites in the org**. Discover the live rule from API errors and session creates — do not hardcode a single prefix as universal.
+5. **Name prefixes** and the Sprite limit are set on the Fly MCP consent screen (commonly `mcp-`; the user may choose another). **No prefix** is a separate choice: bare names allowed, but **unrestricted access to all sprites in the org**. Discover the live rule from `get_fly_context`, API errors and session creates — do not hardcode a single prefix as universal.
+6. The same server can carry non-Sprites Fly tools (apps, Machines, Managed Postgres) if the user granted them on consent. They are out of scope for this skill.
 6. Keep replies concise: names, status, URLs, checkpoint ids — not MCP registration chatter.
 
 ## Stop conditions (fail closed)
@@ -92,20 +93,20 @@ Sprite-scoped tools need a `sprite` argument (usually the name). If unspecified,
 
 The name prefix is a **per-connector OAuth setting**, not a fixed product rule for Grok.
 
-Restricted tokens **require a non-empty prefix**. “No prefix” is not a restricted-token option — it is **Full access**, which can operate on every sprite in the organization.
+It is part of the Sprites grant, next to the Sprite limit; `get_fly_context` reports both (`name_prefix`, `max_sprites_total`). “No prefix” is not a naming preference — that grant can operate on every sprite in the organization.
 
 | Consent choice | Create behavior |
 |----------------|-----------------|
-| Default restricted prefix | Usually **`mcp-`** — names like `mcp-my-task`; limited to that prefix |
-| Custom restricted prefix | Whatever the user set (e.g. `grok-`, `agent-`); limited to that prefix |
-| **Full access (no prefix)** | Bare names allowed; **unrestricted access to all sprites in the org** |
+| Name prefix `mcp-` | Names like `mcp-my-task`; limited to that prefix |
+| Another prefix | Whatever the user set (e.g. `grok-`, `agent-`); limited to that prefix |
+| **No prefix** | Bare names allowed; **unrestricted access to all sprites in the org** |
 
 **Agent rules:**
 
-1. **Session memory:** After a prefix error or successful create, remember the effective prefix (or “full access / none”).
-2. **Agent-chosen names** (user did not specify): if unknown, prefer **`mcp-` + short slug** (matches the common restricted default). If the API requires another prefix, retry once. If the token is full access (no prefix rule), bare descriptive names are fine.
+1. **Session memory:** After a prefix error or successful create, remember the effective prefix (or “none”).
+2. **Agent-chosen names** (user did not specify): if unknown, prefer **`mcp-` + short slug** (the common prefix). If the API requires another prefix, retry once. If the grant has no prefix rule, bare descriptive names are fine.
 3. **User-chosen bare names** (e.g. “create odysseus”): try exact name first; on prefix error, **retry once** with `{prefix}{name}`; report the actual name and that it comes from their OAuth connector settings.
-4. Never invent a second auth path to avoid the prefix. To get bare names / org-wide access, the user re-auths and chooses **Full access** on consent — warn that this is unrestricted org access, not merely “no naming rule.”
+4. Never invent a second auth path to avoid the prefix. To get bare names / org-wide access, the user re-auths without a name prefix on consent — warn that this is unrestricted org access, not merely “no naming rule.”
 
 Details: [auth-and-setup.md](references/auth-and-setup.md).
 
@@ -182,6 +183,6 @@ Network: `policy_network_get` before changes; update only when needed and explai
 
 **Setup blocked:** failure class → recovery steps → you will retry after they finish (no CLI install).
 
-**Prefix rewrite:** requested name → actual name → OAuth connector prefix setting (default is often `mcp-`).
+**Prefix rewrite:** requested name → actual name → OAuth connector prefix setting (often `mcp-`).
 
 Keep output concise.

@@ -66,8 +66,8 @@ class GrokPluginRepositoryTests(unittest.TestCase):
         parsed = urlparse(server["url"])
         self.assertEqual(server["type"], "http")
         self.assertEqual(parsed.scheme, "https")
-        self.assertEqual(parsed.netloc, "sprites.dev")
-        self.assertEqual(parsed.path, "/mcp")
+        self.assertEqual(parsed.netloc, "mcp.fly.io")
+        self.assertEqual(parsed.path, "")
         self.assertGreaterEqual(server["tool_timeout_sec"], 60)
 
 

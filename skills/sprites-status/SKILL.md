@@ -22,7 +22,7 @@ Verify Sprites readiness for this Grok session. **MCP only** — do not install 
    - **Auth error / OAuth required** → class B: complete browser OAuth or `/mcps` → sprites → authenticate; empty list not reached yet.
    - **Empty list** → authenticated; no sprites visible (success).
    - **Non-empty list** → summarize count; name, status, URL for each (cap detail if many).
-5. Mention name prefix only if known from prior session context or names on the list; otherwise note that the prefix is set on the OAuth consent screen (default often `mcp-`).
+5. Mention name prefix only if known from prior session context or names on the list; otherwise note that the prefix is set on the Fly MCP consent screen (often `mcp-`) and that `get_fly_context` reports it.
 
 ## Output
 

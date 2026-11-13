@@ -2,7 +2,7 @@
   "mcpServers": {
     "sprites": {
       "type": "http",
-      "url": "https://sprites.dev/mcp",
+      "url": "https://mcp.fly.io",
       "tool_timeout_sec": 300
     }
   }

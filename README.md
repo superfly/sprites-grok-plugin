@@ -2,13 +2,20 @@
 
 Use [**Sprites**](https://sprites.dev) from [Grok Build](https://x.ai/cli): isolated, checkpointable Linux environments for agent compute (builds, tests, sandboxes, long-running services).
 
-This repo **is** the plugin. It wires Grok to the hosted MCP server at `https://sprites.dev/mcp` (OAuth) and ships skills for safe workflows. **No Sprites CLI required.**
+This repo **is** the plugin. It wires Grok to the hosted Fly MCP server at `https://mcp.fly.io` (OAuth) and ships skills for safe workflows. **No Sprites CLI required.**
 
 The plugin marks its hosted MCP requests as Grok-driven using coarse,
 privacy-safe [`client-signals`](https://github.com/superfly/client-signals)
 headers. Nothing user-, machine-, or repo-specific is sent. The attribution is
 advisory analytics only — client signals are self-reported, so they are never
 used for authentication, authorization, per-request gating, or enforcement.
+
+> **Upgrading from 0.2.0 or earlier:** the plugin now connects to the Fly MCP
+> at `https://mcp.fly.io` instead of the Sprites MCP at
+> `https://sprites.dev/mcp`, as we transition to the new Fly MCP server. The Sprites tool names are
+> unchanged and the server is still called `sprites`, but the two endpoints
+> have separate OAuth grants: after updating, authorize once more (`/mcps` →
+> sprites → authenticate).
 
 ## Quick start
 
@@ -22,8 +29,8 @@ Reload plugins (`/plugins` → `r`) or restart Grok, then:
 | Step | What to do |
 |------|------------|
 | 1 | Say **List my sprites.** (or run **`/sprites-status`**) |
-| 2 | Complete **browser OAuth** (Fly.io → organization) |
-| 3 | On the consent screen, review token settings — name prefix **defaults to `mcp-`** (restricted). **Full access** allows bare names but grants unrestricted access to every sprite in the org |
+| 2 | Complete **browser OAuth** (sign in at Fly.io) |
+| 3 | On the consent screen, choose the organization and grant **Sprites** access. Fly apps and Managed Postgres are separate, optional grants this plugin does not need. Review the Sprites **name prefix** (e.g. `mcp-`) and **Sprite limit** — without a prefix the connector can reach every sprite in the org |
 | 4 | Empty list = **success** — you are authenticated |
 
 Optional full check: **`/sprites-smoke`** (list → create → exec → ask before destroy).
@@ -32,7 +39,7 @@ Try next:
 
 > Create a sprite for a quick experiment and run `uname -a` in it.
 
-If create fails with a prefix rule, Grok should retry with `{prefix}your-name` and tell you the real name (e.g. `mcp-experiment` when using the default).
+If create fails with a prefix rule, Grok should retry with `{prefix}your-name` and tell you the real name (e.g. `mcp-experiment` when the prefix is `mcp-`).
 
 ### Optional health checks
 
@@ -85,27 +92,30 @@ installation remains available for development and testing.
 
 | Piece | Role |
 |-------|------|
-| Plugin | Points Grok at `https://sprites.dev/mcp` |
-| Browser OAuth | Your Fly.io user + org; Grok stores connector tokens |
-| Name prefix | Set on consent for **restricted** tokens; **default `mcp-`**. A non-empty prefix is required for restricted access |
-| Create cap | Restricted tokens may limit how many sprites this connector can create |
-| Full access | Unrestricted token — bare names allowed; **can use every sprite in the org** |
+| Plugin | Points Grok at `https://mcp.fly.io` (the Fly MCP) |
+| Browser OAuth | Your Fly.io user; Grok stores connector tokens |
+| Consent screen | One screen for the whole Fly MCP: organizations, Sprites, and optionally existing Fly apps and Managed Postgres. This plugin only needs Sprites; anything else you grant shows up as extra tools on the same server |
+| Name prefix | Sprites restriction set on consent (e.g. `mcp-`); the connector only sees and creates sprites under it |
+| Sprite limit | Sprites restriction set on consent; caps how many sprites this connector can create |
+| No prefix | Bare names allowed; **can use every sprite in the org** |
 
 You do **not** need `sprite login` or a manual `grok mcp add` for normal use.
 
 ### Name prefix and access
 
-Restricted MCP tokens **must** have a non-empty name prefix. Bare names are not a separate “clear the prefix” toggle — they come with **Full access**.
+The Sprites part of the grant carries a name prefix and a Sprite limit. Bare names are not a naming preference — a grant with no prefix reaches every sprite in the org.
 
 | Consent choice | Example names | Access |
 |----------------|---------------|--------|
-| Default restricted prefix | `mcp-my-task`, `mcp-api-debug` | Only sprites under that prefix (safer for agents) |
-| Custom restricted prefix (e.g. `agent-`) | `agent-my-task` | Only sprites under that prefix |
-| **Full access (no prefix)** | `my-task`, `odysseus` | Bare names allowed; **unrestricted access to all sprites in the org** |
+| Name prefix `mcp-` | `mcp-my-task`, `mcp-api-debug` | Only sprites under that prefix (safer for agents) |
+| Another prefix (e.g. `agent-`) | `agent-my-task` | Only sprites under that prefix |
+| **No prefix** | `my-task`, `odysseus` | Bare names allowed; **unrestricted access to all sprites in the org** |
 
-Prefer a restricted prefix for day-to-day agent use. Choose **Full access** only when you intentionally need org-wide sprite control.
+Prefer a name prefix for day-to-day agent use. Go without one only when you intentionally need org-wide sprite control.
 
-To change prefix or access level later: re-authenticate the Sprites MCP connector (`/mcps` → sprites) and adjust the consent screen.
+Ask Grok what the connection is allowed to do at any time: the `get_fly_context` tool reports the authorized organizations, scopes, name prefix and Sprite limit.
+
+To change the prefix, limit or granted products later: re-authenticate the connector (`/mcps` → sprites) and adjust the consent screen.
 
 ## Example prompts
 
@@ -119,7 +129,7 @@ To change prefix or access level later: re-authenticate the Sprites MCP connecto
 
 ## How it works
 
-Grok stays on your machine. Sprites MCP is the control plane for remote environments:
+Grok stays on your machine. The Fly MCP's Sprites tools are the control plane for remote environments:
 
 - Local workspace ≠ sprite filesystem
 - Remote commands → `exec` / services tools
@@ -133,7 +143,7 @@ If MCP is missing or unauthenticated, Grok should **explain recovery** (skill `a
 ## Client attribution
 
 `.grok-plugin/mcp.json` sets two static headers on every request to
-`https://sprites.dev/mcp`:
+`https://mcp.fly.io`:
 
 | Header | Value | Why |
 |---|---|---|
@@ -193,16 +203,18 @@ server-side: `operator="agent", agent="grok"` means the headers landed;
 |-------|--------|
 | Never finished OAuth | Complete browser flow, or `/mcps` → sprites → authenticate |
 | Wrong org | Re-auth and pick the org that owns your sprites |
+| Worked before the move to `mcp.fly.io` | The old `sprites.dev/mcp` grant does not carry over — authenticate once more |
+| Authenticated, but no Sprites tools | Sprites access was not granted on consent — re-auth and grant it |
 | Doctor: authorization required after start | Normal until OAuth completes |
 
 ### Prefix or policy
 
 | Check | Action |
 |-------|--------|
-| `name must start with '…'` | Use that prefix (agent should auto-retry once), or re-auth and pick a different restricted prefix |
-| Create cap | Destroy unused sprites or re-auth with a higher cap |
-| Need bare names / org-wide access | Re-auth and choose **Full access** (unrestricted — every sprite in the org) |
-| Sprite not in list | Other org, or outside this token’s prefix visibility |
+| `name must start with '…'` | Use that prefix (agent should auto-retry once), or re-auth and set a different prefix |
+| Sprite limit reached | Destroy unused sprites or re-auth with a higher limit |
+| Need bare names / org-wide access | Re-auth without a name prefix (unrestricted — every sprite in the org) |
+| Sprite not in list | Other org, or outside this grant’s name prefix |
 
 ### Runtime (MCP already works)
 
@@ -222,7 +234,7 @@ server-side: `operator="agent", agent="grok"` means the headers landed;
 
 ```
 .grok-plugin/plugin.json       Manifest (v0.2.0)
-.grok-plugin/mcp.json          Hosted MCP URL + client attribution (shipped)
+.grok-plugin/mcp.json          Fly MCP URL + client attribution (shipped)
 .mcp.json                      Project-scoped config for working in this repo;
                                no attribution headers — see Client attribution
 skills/sprites/                Main skill + references
@@ -237,7 +249,7 @@ LICENSE
 
 - https://sprites.dev
 - https://docs.sprites.dev
-- https://docs.sprites.dev/integrations/remote-mcp/
+- Fly MCP guide: https://mcp.fly.io/guide.md
 - MCP registry: [`dev.sprites/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=dev.sprites/mcp) · [superfly/sprites-mcp](https://github.com/superfly/sprites-mcp)
 
 ## License
