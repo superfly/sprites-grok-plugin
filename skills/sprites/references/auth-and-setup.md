@@ -1,12 +1,12 @@
 # Auth and setup
 
-Sprites from this plugin go through the **hosted MCP server** only:
+Sprites from this plugin go through the **hosted Fly MCP server** only:
 
 ```text
-https://sprites.dev/mcp
+https://mcp.fly.io
 ```
 
-Grok authenticates that server with **browser OAuth**. The Sprites CLI is not required for plugin use and must not be installed as a workaround.
+The plugin registers it under the server name `sprites`. Grok authenticates that server with **browser OAuth**. A grant made for the previous `https://sprites.dev/mcp` endpoint does not carry over: a user who upgraded authorizes once more. The Sprites CLI is not required for plugin use and must not be installed as a workaround.
 
 ## 60-second first run (user)
 
@@ -20,8 +20,8 @@ Grok authenticates that server with **browser OAuth**. The Sprites CLI is not re
    Or run **`/sprites-status`** for a guided check.
 4. Complete the browser OAuth prompt:
    - Fly.io account with Sprites access
-   - Correct organization
-   - Review **token restrictions** on the consent screen (see below)
+   - Correct organization, with **Sprites** access granted
+   - Review the **Sprites restrictions** on the consent screen (see below)
 5. Empty list = success. You are ready.
 
 Optional: run **`/sprites-smoke`** for list → create → exec → (optional) destroy.
@@ -41,35 +41,39 @@ grok mcp doctor sprites
 
 You do **not** need the Sprites CLI, `sprite login`, or `grok mcp add`.
 
-## Consent screen: name prefix and caps
+## Consent screen: products, name prefix and Sprite limit
 
-During OAuth the user configures the connector token:
+The Fly MCP has one consent screen for everything it serves. The user picks organizations and what to authorize in them: Sprites, and optionally existing Fly apps and Managed Postgres. Each is granted independently.
 
-| Setting | Default (typical) | User may |
-|---------|-------------------|----------|
-| Name prefix (restricted) | **`mcp-`** | Change to another **non-empty** prefix (restricted tokens require one) |
-| Create cap | Limited count | Raise/lower within restricted mode |
-| Access mode | Restricted connector | **Full access** — no prefix, unrestricted org sprites |
+- This plugin needs **Sprites** only. If Sprites access is not granted, the Sprites tools are absent or denied — that is a grant choice, not a broken install.
+- If the user also granted Fly apps or Managed Postgres, those tools appear on the same `sprites` server. They are outside this plugin's skills; do not use them for Sprites work.
+- `get_fly_context` reports what this connection was actually granted: organizations, scopes, and the Sprites `name_prefix` and `max_sprites_total`. It never widens access.
+
+For Sprites the user sets:
+
+| Setting | Typical | Effect |
+|---------|---------|--------|
+| Name prefix | e.g. **`mcp-`** | Connector lists and creates only sprites whose names start with it |
+| Sprite limit | A small count | Caps how many sprites this connector can create |
+| No prefix | — | Bare names allowed; unrestricted org sprites |
 
 ### Access tradeoff (disclose clearly)
 
 | Consent choice | Names | Security |
 |----------------|-------|----------|
-| Default restricted prefix | e.g. `mcp-my-task` | Safer for agents; only sprites under that prefix |
-| Custom restricted prefix | e.g. `agent-my-task` | Same, under the custom prefix |
-| **Full access (no prefix)** | Bare names allowed (`odysseus`, …) | **Unrestricted access to all sprites in the org** |
+| Name prefix `mcp-` | e.g. `mcp-my-task` | Safer for agents; only sprites under that prefix |
+| Another prefix | e.g. `agent-my-task` | Same, under that prefix |
+| **No prefix** | Bare names allowed (`odysseus`, …) | **Unrestricted access to all sprites in the org** |
 
-Restricted tokens **cannot** “clear” the prefix while staying restricted — the OAuth implementation requires a non-empty prefix for restricted tokens. Bare names mean **Full access**.
-
-**For users:** Prefer a restricted prefix for agent connectors. Choose **Full access** only when you intentionally need org-wide control. Remember what you set: default names look like `mcp-my-task`.
+**For users:** Prefer a name prefix for agent connectors. Go without one only when you intentionally need org-wide control. Remember what you set: with `mcp-`, names look like `mcp-my-task`.
 
 **For the agent:**
 
-- Do **not** assume the live prefix is always `mcp-` (defaults change per token).
-- Prefer **try the name as requested**, then learn from API errors.
-- When **choosing** a name with no user name and no session knowledge, prefer the product default prefix **`mcp-`** (e.g. `mcp-grok-tests`). If create fails with a different required prefix, retry once with that prefix. If create succeeds with no prefix rule (full access), bare descriptive names are fine afterward.
+- Do **not** assume the live prefix is always `mcp-` (it is set per grant).
+- Call `get_fly_context` when you need the rule up front; otherwise **try the name as requested** and learn from API errors.
+- When **choosing** a name with no user name and no session knowledge, prefer **`mcp-`** (e.g. `mcp-grok-tests`). If create fails with a different required prefix, retry once with that prefix. If there is no prefix rule, bare descriptive names are fine afterward.
 - Session memory: after any successful create or prefix error, remember the effective rule for later creates.
-- Do **not** tell the user to “just disable the prefix” without mentioning that **Full access** unlocks every sprite in the org.
+- Do **not** tell the user to “just disable the prefix” without mentioning that a grant with no prefix unlocks every sprite in the org.
 
 ## How the agent should diagnose
 
@@ -98,12 +102,12 @@ Classify the failure before suggesting anything. Give short recovery steps. **St
 
 1. Complete the browser OAuth flow Grok shows
 2. Or `/mcps` → **sprites** → authenticate (`i` where offered)
-3. Pick the correct organization; note prefix/cap settings on consent
+3. Pick the correct organization and grant Sprites access; note the name prefix and Sprite limit on consent
 4. Retry the original request once
 
 **Agent must not:** run `sprite login`, paste tokens into the shell, or open a second OAuth path from the terminal.
 
-### C. Token / policy restricted (authenticated, action denied)
+### C. Grant restricted (authenticated, action denied)
 
 **Signals:** Create/mutate fails with a clear prefix or cap message, e.g. `sprite name must start with 'mcp-'` (or another prefix the user configured).
 
@@ -113,12 +117,13 @@ Classify the failure before suggesting anything. Give short recovery steps. **St
 2. For a user-requested bare name (e.g. `odysseus`), **retry once** with `{prefix}{name}` when that mapping is unambiguous.
 3. Report the **actual name created**, and that it matches the connector’s OAuth prefix setting.
 4. Remember the prefix for later creates in this session.
-5. If the user insisted on the exact bare name only, explain they can re-auth and choose **Full access** on the consent screen (unrestricted org access — not a restricted empty prefix) — do not loop.
+5. If the user insisted on the exact bare name only, explain they can re-auth without a name prefix on the consent screen (unrestricted org access, not just a naming change) — do not loop.
 
 **User recovery if caps or broader access are needed:**
 
-1. Stay under the create cap, or destroy unused sprites
-2. Re-authenticate and adjust cap, or choose **Full access** if they intentionally need unrestricted org-wide sprite access
+1. Stay under the Sprite limit, or destroy unused sprites they own
+2. Re-authenticate and adjust the limit, or drop the name prefix if they intentionally need unrestricted org-wide sprite access
+3. If no Sprites tool is permitted at all, re-authenticate and grant Sprites access (`get_fly_context` shows what was granted)
 
 **Agent must not:** invent tokens or ask the user to paste API keys into the shell.
 
@@ -138,9 +143,9 @@ Classify the failure before suggesting anything. Give short recovery steps. **St
 
 ## Name prefix playbook (agent)
 
-1. **Session memory:** After any prefix error or successful create, keep the effective prefix (or “full access / none”) for the session.
-2. **Agent-chosen names (no user name):** If prefix unknown, use default-style names under **`mcp-`**. If the API requires a different prefix, retry once. If unrestricted (**Full access**, no prefix), descriptive bare names are OK.
-3. **User-chosen bare names:** Try as requested; on prefix error, retry with `{prefix}{name}` and explain. Do not suggest “disable prefix” without stating that **Full access** is unrestricted org-wide access.
+1. **Session memory:** After any prefix error or successful create, keep the effective prefix (or “none”) for the session.
+2. **Agent-chosen names (no user name):** If prefix unknown, use names under **`mcp-`**. If the API requires a different prefix, retry once. If unrestricted (no prefix), descriptive bare names are OK.
+3. **User-chosen bare names:** Try as requested; on prefix error, retry with `{prefix}{name}` and explain. Do not suggest “disable prefix” without stating that a grant with no prefix is unrestricted org-wide access.
 4. **Hints from list:** Shared prefixes on existing sprites are clues only — trust explicit API errors over guesses.
 
 ## Forbidden agent workarounds
@@ -162,4 +167,4 @@ Independent of this plugin. Agent still uses MCP for Grok-driven work. Never ins
 1. Plugin `sprites` enabled
 2. MCP `sprites` can start (doctor: not folder-blocked)
 3. At least one Sprites tool call works after OAuth (empty list is OK)
-4. Creates respect the connector’s OAuth name-prefix setting when one is set
+4. Creates respect the grant’s name prefix and Sprite limit when set

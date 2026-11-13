@@ -17,7 +17,7 @@ Use this when Grok needs isolated Linux compute for agent tasks: builds, tests, 
 
 ## Bootstrap a task environment
 
-1. **Select or create** a sprite (`list_sprites` → reuse if clearly matching; otherwise `create_sprite` with a task-scoped name. Prefer `mcp-…` when the session has no known prefix — that is the usual restricted OAuth default; learn any custom prefix or full-access rule from API errors — see [auth-and-setup.md](auth-and-setup.md)).
+1. **Select or create** a sprite (`list_sprites` → reuse if clearly matching; otherwise `create_sprite` with a task-scoped name. Prefer `mcp-…` when the session has no known prefix — that is the common consent prefix; learn the actual prefix, or that there is none, from `get_fly_context` or API errors — see [auth-and-setup.md](auth-and-setup.md)).
 2. **Baseline tools** with short `exec` probes (`node -v`, `python3 --version`, `git --version`, package managers). Install only what the task needs.
 3. **Checkpoint** a clean baseline (`checkpoint_create`, comment like `baseline-after-tooling`) before large installs or untrusted runs.
 4. **Bring code in** (pick one — details in [files.md](files.md)):
